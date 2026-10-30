@@ -1,0 +1,11 @@
+target/
+.git/
+.idea/
+.mvn/
+mvnw
+mvnw.cmd
+*.iml
+.DS_Store
+HELP.md
+README.md
+*.command

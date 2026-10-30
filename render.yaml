@@ -1,0 +1,11 @@
+# Render Blueprint — связывает репозиторий с сервисом, чтобы не настраивать руками.
+services:
+  - type: web
+    name: armenian-alias
+    runtime: docker
+    plan: free
+    # Ближайший к Армении регион Render — задержка для WebSocket заметно меньше.
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true
