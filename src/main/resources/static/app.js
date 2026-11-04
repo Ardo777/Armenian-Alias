@@ -9,7 +9,13 @@
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
     const STORE_KEY = 'alias-session';
-    const LEVEL_NAMES = { 1: 'Հեշտ', 2: 'Միջին', 3: 'Բարդ' };
+    // Армянский словарь размечен по сложности, английский — по уровням CEFR.
+    const LEVEL_NAMES = {
+        HY: { 1: 'Հեշտ', 2: 'Միջին', 3: 'Բարդ' },
+        EN: { 1: 'A1', 2: 'A2', 3: 'B1+' },
+    };
+    const levelNames = () => LEVEL_NAMES[state?.settings?.language] ?? LEVEL_NAMES.HY;
+    const TOTAL_LEVELS = 3;
 
     let socket = null;
     let state = null;
@@ -320,6 +326,17 @@
         const settings = state.settings;
         applySeg('roundSeconds', settings.roundSeconds);
         applySeg('skipsPerTurn', settings.skipsPerTurn >= 99 ? 99 : settings.skipsPerTurn);
+        applySeg('language', settings.language);
+        applySeg('translationsPerTurn', settings.translationsPerTurn);
+        // Переводы есть только в английском словаре — в армянском настройка бессмысленна.
+        $$('[data-when-lang="EN"]').forEach(el => { el.hidden = settings.language !== 'EN'; });
+        const names = levelNames();
+        $$('.seg[data-setting="levels"] button').forEach(btn => {
+            btn.textContent = names[Number(btn.dataset.value)];
+        });
+        $('#levelsHint').textContent = settings.language === 'EN'
+            ? 'CEFR մակարդակներ — կարելի է ընտրել մի քանիսը'
+            : 'Կարելի է ընտրել մի քանիսը';
         applySeg('winMode', settings.winMode);
         applySeg('targetScore', settings.targetScore);
         applySeg('totalRounds', settings.totalRounds);
@@ -416,7 +433,12 @@
                 card.classList.add('flash-in');
             }
             $('#wordMain').textContent = state.card.word;
-            $('#wordLevel').textContent = LEVEL_NAMES[state.card.level] ?? '';
+            $('#wordLevel').textContent = levelNames()[state.card.level] ?? '';
+
+            // В английском словаре запрещены не только однокоренные, но и очевидные подсказки.
+            $('#tabooHead').textContent = state.settings.language === 'EN'
+                ? '🚫 Այս բառերն ասել չի կարելի'
+                : '🚫 Արգելված են արմատակից բառերը';
 
             const taboo = $('#tabooList');
             taboo.innerHTML = '';
@@ -425,6 +447,8 @@
                 li.textContent = word;
                 taboo.appendChild(li);
             });
+
+            renderTranslation(state.card);
 
             $('#turnPoints').textContent = state.turnScore;
             const unlimited = state.settings.skipsPerTurn >= 99;
@@ -443,6 +467,30 @@
             $('#watchPoints').textContent = guessed;
             renderMiniScores($('#watchScores'));
         }
+    }
+
+    /** Кнопка перевода: спрятана, пока её нечем или незачем нажимать. */
+    function renderTranslation(card) {
+        const btn = $('#btnTranslate');
+        const box = $('#translationBox');
+        const allowance = state.settings.translationsPerTurn;
+
+        if (!card.hasTranslation || allowance <= 0) {
+            btn.hidden = true;
+            box.hidden = true;
+            return;
+        }
+        if (card.translation) {
+            box.textContent = card.translation;
+            box.hidden = false;
+            btn.hidden = true;
+            return;
+        }
+        box.hidden = true;
+        btn.hidden = false;
+        const unlimited = allowance >= 99;
+        btn.disabled = !unlimited && state.translationsLeft <= 0;
+        $('#translateCount').textContent = unlimited ? '∞' : state.translationsLeft;
     }
 
     /* ────────────────────────────── timer ────────────────────────────── */
@@ -622,6 +670,16 @@
         $('#btnWrong').onclick = () => answer('WRONG', [90], 'hit-wrong');
         $('#btnSkip').onclick  = () => answer('SKIP', [18], null);
 
+        $('#btnTranslate').onclick = () => {
+            if (!state || state.phase !== 'PLAYING' || !state.isExplainer) return;
+            const unlimited = state.settings.translationsPerTurn >= 99;
+            if (!unlimited && state.translationsLeft <= 0) {
+                return toast('Թարգմանությունները սպառվել են', true);
+            }
+            buzz(14);
+            send({ type: 'translate' });
+        };
+
         // tabs
         $$('.tab').forEach(tab => {
             tab.onclick = () => {
@@ -639,14 +697,20 @@
                     buzz(12);
                     if (name === 'levels') {
                         const value = Number(btn.dataset.value);
-                        const levels = state.settings.levels.includes(value)
-                            ? state.settings.levels.filter(l => l !== value)
-                            : [...state.settings.levels, value];
-                        if (levels.length === 0) return toast('Ընտրեք գոնե մեկ բարդություն', true);
+                        const current = state.settings.levels;
+                        // Все уровни включены по умолчанию, поэтому первый тап читается как
+                        // «хочу только этот», а не «убрать этот» — иначе выбор A1 и A2
+                        // молча оставлял бы ровно те уровни, которых не просили.
+                        const levels = current.length === TOTAL_LEVELS
+                            ? [value]
+                            : current.includes(value)
+                                ? current.filter(l => l !== value)
+                                : [...current, value];
+                        if (levels.length === 0) return toast('Ընտրեք գոնե մեկ մակարդակ', true);
                         send({ type: 'settings', settings: { levels } });
                     } else {
                         const raw = btn.dataset.value;
-                        const value = name === 'winMode' ? raw : Number(raw);
+                        const value = (name === 'winMode' || name === 'language') ? raw : Number(raw);
                         send({ type: 'settings', settings: { [name]: value } });
                     }
                 };

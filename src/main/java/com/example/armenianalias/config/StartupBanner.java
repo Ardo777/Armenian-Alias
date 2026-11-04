@@ -33,7 +33,9 @@ public class StartupBanner implements ApplicationListener<ApplicationReadyEvent>
         System.out.println("  ╭──────────────────────────────────────────────╮");
         System.out.println("  │   ՀԱՅԿԱԿԱՆ ԱԼԻԱՍ  ·  Armenian Alias          │");
         System.out.println("  ╰──────────────────────────────────────────────╯");
-        System.out.println("   Բառարան / словарь:  " + wordBank.size() + " բառ");
+        System.out.println("   Բառարան / словарь:  "
+                + wordBank.size(WordBank.ARMENIAN) + " հայերեն  ·  "
+                + wordBank.size(WordBank.ENGLISH) + " English");
         System.out.println("   На этом компьютере: http://localhost:" + port);
         if (lan != null) {
             System.out.println("   С телефонов (Wi-Fi): http://" + lan + ":" + port);

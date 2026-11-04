@@ -57,6 +57,9 @@ public class Room {
     private WordCard currentCard;
     private long turnEndsAt;
     private int skipsLeft;
+    private int translationsLeft;
+    /** Whether the explainer has already paid to see the current word's translation. */
+    private boolean translationShown;
     private final List<TurnEntry> turnEntries = new ArrayList<>();
     private int turnScoreDelta;
     private String lastError;
@@ -235,7 +238,7 @@ public class Room {
             team.setScore(0);
             team.setExplainerIndex(0);
         });
-        deck = bank.newDeck(settings.getLevels());
+        deck = bank.newDeck(settings.getLanguage(), settings.getLevels());
         roundNumber = 1;
         activeTeamIndex = 0;
         turnEntries.clear();
@@ -271,6 +274,7 @@ public class Room {
             return;
         }
         skipsLeft = settings.getSkipsPerTurn();
+        translationsLeft = settings.getTranslationsPerTurn();
         turnEntries.clear();
         turnScoreDelta = 0;
         phase = PLAYING;
@@ -282,9 +286,23 @@ public class Room {
 
     private void drawCard(WordBank bank) {
         if (deck == null || deck.isEmpty()) {
-            deck = bank.newDeck(settings.getLevels());
+            deck = bank.newDeck(settings.getLanguage(), settings.getLevels());
         }
         currentCard = deck.poll();
+        translationShown = false;   // each new word must be paid for separately
+    }
+
+    /** Spends one of the turn's translations to reveal the current word's meaning. */
+    public void revealTranslation() {
+        if (!PLAYING.equals(phase) || currentCard == null || translationShown) {
+            return;
+        }
+        if (!currentCard.hasTranslation() || translationsLeft <= 0) {
+            return;
+        }
+        translationsLeft--;
+        translationShown = true;
+        touch();
     }
 
     /** Records the explainer's tap and deals the next word. */
@@ -418,6 +436,7 @@ public class Room {
         state.put("explainerId", explainerId);
         state.put("isExplainer", explainerId != null && explainerId.equals(viewerId));
         state.put("skipsLeft", skipsLeft);
+        state.put("translationsLeft", translationsLeft);
         state.put("turnEndsAt", turnEndsAt);
         state.put("serverNow", System.currentTimeMillis());
         state.put("turnScore", currentTurnPoints());
@@ -454,10 +473,12 @@ public class Room {
         Map<String, Object> settingsMap = new LinkedHashMap<>();
         settingsMap.put("roundSeconds", settings.getRoundSeconds());
         settingsMap.put("skipsPerTurn", settings.getSkipsPerTurn());
+        settingsMap.put("translationsPerTurn", settings.getTranslationsPerTurn());
         settingsMap.put("penaltyForWrong", settings.isPenaltyForWrong());
         settingsMap.put("winMode", settings.getWinMode());
         settingsMap.put("targetScore", settings.getTargetScore());
         settingsMap.put("totalRounds", settings.getTotalRounds());
+        settingsMap.put("language", settings.getLanguage());
         settingsMap.put("levels", settings.getLevels());
         state.put("settings", settingsMap);
 
@@ -467,6 +488,9 @@ public class Room {
             card.put("word", currentCard.word());
             card.put("level", currentCard.level());
             card.put("taboo", currentCard.taboo());
+            card.put("hasTranslation", currentCard.hasTranslation());
+            // The translation is withheld until it is paid for.
+            card.put("translation", translationShown ? currentCard.translation() : null);
             state.put("card", card);
         } else {
             state.put("card", null);

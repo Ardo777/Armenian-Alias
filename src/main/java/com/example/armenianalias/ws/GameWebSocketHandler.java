@@ -192,6 +192,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                 }
                 case "settings" -> {
                     if (!admin) { error[0] = "Միայն ադմինը կարող է"; return; }
+                    // Changing the language or levels mid-game would quietly mix word lists
+                    // into the deck already in play, so settings are frozen once it starts.
+                    if (!Room.LOBBY.equals(r.getPhase()) && !Room.SETUP.equals(r.getPhase())) {
+                        error[0] = "Կարգավորումները փոխվում են միայն խաղը սկսելուց առաջ";
+                        return;
+                    }
                     applySettings(r.getSettings(), node.get("settings"));
                     r.touch();
                 }
@@ -221,6 +227,10 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
                             || TurnEntry.WRONG.equals(result)) {
                         r.answer(result, rooms.wordBank());
                     }
+                }
+                case "translate" -> {
+                    if (!explainer) { error[0] = "Միայն բացատրողը կարող է"; return; }
+                    r.revealTranslation();
                 }
                 case "endTurn" -> {
                     if (!explainer && !admin) { error[0] = "Միայն բացատրողը կարող է"; return; }
@@ -265,10 +275,12 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         }
         if (node.hasNonNull("roundSeconds")) settings.setRoundSeconds(node.get("roundSeconds").asInt());
         if (node.hasNonNull("skipsPerTurn")) settings.setSkipsPerTurn(node.get("skipsPerTurn").asInt());
+        if (node.hasNonNull("translationsPerTurn")) settings.setTranslationsPerTurn(node.get("translationsPerTurn").asInt());
         if (node.hasNonNull("penaltyForWrong")) settings.setPenaltyForWrong(node.get("penaltyForWrong").asBoolean());
         if (node.hasNonNull("winMode")) settings.setWinMode(node.get("winMode").asString());
         if (node.hasNonNull("targetScore")) settings.setTargetScore(node.get("targetScore").asInt());
         if (node.hasNonNull("totalRounds")) settings.setTotalRounds(node.get("totalRounds").asInt());
+        if (node.hasNonNull("language")) settings.setLanguage(node.get("language").asString());
         if (node.hasNonNull("levels") && node.get("levels").isArray()) {
             List<Integer> levels = new ArrayList<>();
             node.get("levels").forEach(value -> levels.add(value.asInt()));

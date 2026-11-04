@@ -12,33 +12,52 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 
-/** Loads words.json once and deals shuffled decks out of it. */
+/** Holds one word list per language and deals shuffled decks out of them. */
 @Component
 public class WordBank {
 
-    private final List<WordCard> all;
+    public static final String ARMENIAN = "HY";
+    public static final String ENGLISH = "EN";
+
+    private final Map<String, List<WordCard>> banks;
 
     public WordBank() throws IOException {
-        try (InputStream in = new ClassPathResource("words.json").getInputStream()) {
-            this.all = new JsonMapper().readValue(in, new TypeReference<List<WordCard>>() {});
+        this.banks = Map.of(
+                ARMENIAN, load("words.json"),
+                ENGLISH, load("words-en.json"));
+    }
+
+    private static List<WordCard> load(String resource) throws IOException {
+        try (InputStream in = new ClassPathResource(resource).getInputStream()) {
+            return new JsonMapper().readValue(in, new TypeReference<List<WordCard>>() {});
         }
     }
 
-    public int size() {
-        return all.size();
+    /** Unknown or missing languages fall back to Armenian rather than dealing nothing. */
+    public static String normalize(String language) {
+        return ENGLISH.equalsIgnoreCase(language) ? ENGLISH : ARMENIAN;
+    }
+
+    private List<WordCard> bank(String language) {
+        return banks.get(normalize(language));
+    }
+
+    public int size(String language) {
+        return bank(language).size();
     }
 
     /**
      * @param levels which difficulty levels to include; empty means all
      */
-    public Deque<WordCard> newDeck(List<Integer> levels) {
-        List<WordCard> pool = new ArrayList<>(all);
+    public Deque<WordCard> newDeck(String language, List<Integer> levels) {
+        List<WordCard> pool = new ArrayList<>(bank(language));
         if (levels != null && !levels.isEmpty()) {
             pool.removeIf(card -> !levels.contains(card.level()));
         }
         if (pool.isEmpty()) {
-            pool = new ArrayList<>(all);
+            pool = new ArrayList<>(bank(language));
         }
         Collections.shuffle(pool);
         return new ArrayDeque<>(pool);

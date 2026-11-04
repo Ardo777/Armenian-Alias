@@ -511,6 +511,39 @@ input::placeholder { color: #6b6080; }
     word-break: break-word;
 }
 
+/* Платная подсказка: открыть перевод слова. */
+.translate-btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: rgba(255, 206, 79, .12);
+    border: 1px solid rgba(255, 206, 79, .35);
+    color: var(--gold);
+    border-radius: 999px;
+    padding: 9px 15px;
+    font-size: 13.5px; font-weight: 700;
+    transition: transform .14s, background .2s;
+}
+.translate-btn:active { transform: scale(.93); background: rgba(255, 206, 79, .2); }
+.translate-btn[disabled] { opacity: .35; pointer-events: none; }
+.translate-btn b {
+    min-width: 22px; height: 22px;
+    border-radius: 999px;
+    background: var(--gold); color: var(--ink);
+    font-size: 12px; font-weight: 800;
+    display: grid; place-items: center; padding: 0 5px;
+}
+
+.translation {
+    font-size: clamp(18px, 6vw, 26px);
+    font-weight: 800;
+    color: var(--gold);
+    padding: 8px 16px;
+    border-radius: 14px;
+    background: rgba(255, 206, 79, .12);
+    border: 1px solid rgba(255, 206, 79, .3);
+    animation: word-in .3s cubic-bezier(.2, .9, .3, 1.2);
+    word-break: break-word;
+}
+
 .taboo {
     width: 100%;
     background: rgba(236, 63, 93, .09);

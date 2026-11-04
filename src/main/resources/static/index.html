@@ -137,10 +137,38 @@
                     <button data-value="99">∞</button>
                 </div>
 
+                <div data-when-lang="EN" hidden>
+                    <div class="setting">
+                        <div class="setting-text">
+                            <h3>Թարգմանությունների քանակը</h3>
+                            <p>Քանի՞ անգամ կարելի է բացել բառի թարգմանությունը</p>
+                        </div>
+                    </div>
+                    <div class="seg" data-setting="translationsPerTurn">
+                        <button data-value="0">0</button>
+                        <button data-value="1">1</button>
+                        <button data-value="2">2</button>
+                        <button data-value="3">3</button>
+                        <button data-value="5">5</button>
+                        <button data-value="99">∞</button>
+                    </div>
+                </div>
+
+                <div class="setting">
+                    <div class="setting-text">
+                        <h3>Խաղի լեզուն</h3>
+                        <p>Ո՞ր բառարանով խաղալ</p>
+                    </div>
+                </div>
+                <div class="seg" data-setting="language">
+                    <button data-value="HY">🇦🇲 Հայերեն</button>
+                    <button data-value="EN">🇬🇧 English</button>
+                </div>
+
                 <div class="setting">
                     <div class="setting-text">
                         <h3>Բառերի բարդությունը</h3>
-                        <p>Կարելի է ընտրել մի քանիսը</p>
+                        <p id="levelsHint">Կարելի է ընտրել մի քանիսը</p>
                     </div>
                 </div>
                 <div class="seg seg-multi" data-setting="levels">
@@ -251,8 +279,12 @@
             <div class="word-card" id="wordCard">
                 <div class="word-level" id="wordLevel">Միջին</div>
                 <div class="word-main" id="wordMain">—</div>
+                <button class="translate-btn" id="btnTranslate" hidden>
+                    <span>Թարգմանությունը</span><b id="translateCount">2</b>
+                </button>
+                <div class="translation" id="translationBox" hidden></div>
                 <div class="taboo">
-                    <div class="taboo-head">🚫 Արգելված են արմատակից բառերը</div>
+                    <div class="taboo-head" id="tabooHead">🚫 Արգելված են արմատակից բառերը</div>
                     <ul class="taboo-list" id="tabooList"></ul>
                 </div>
             </div>
